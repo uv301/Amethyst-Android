@@ -1,4 +1,4 @@
-name: Android CI
+name: Android Release CI
 
 on:
   push:
@@ -77,7 +77,7 @@ jobs:
         run: |
           # Build the launcher
           gradle :app_pojavlauncher:assembleRelease
-          mv app_pojavlauncher/build/outputs/apk/release/app_pojavlauncher-release.apk out/app-release.apk
+          mv app_pojavlauncher/build/outputs/apk/release/*.apk out/app-release.apk
 
       - name: Build APK without runtime
         run: |
@@ -85,7 +85,27 @@ jobs:
           rm -r app_pojavlauncher/src/main/assets/components/jre-new
           rm -r app_pojavlauncher/src/main/assets/components/jre-21
           gradle assembleRelease
-          mv app_pojavlauncher/build/outputs/apk/release/app_pojavlauncher-release.apk out/app-release-noruntime.apk
+          mv app_pojavlauncher/build/outputs/apk/release/*.apk out/app-release-noruntime.apk
+      - name: Android Sign
+        # You may pin to the exact commit or the version.
+        # uses: Tlaster/android-sign@1c5bf4b2fa309acb0c0ae0bf9379ab458f14d5b1
+        uses: Tlaster/android-sign@v1.2.2
+        with:
+          # The directory to find your release to sign
+          releaseDirectory: out
+          # The key used to sign your release in base64 encoded format
+          signingKeyBase64: ${{ secrets.SIGN_BASE64_KEY }}
+          # The key alias
+          alias: ${{ secrets.ALIAS }}
+          # The password to the keystore
+          #keyStorePassword: # optional
+          # The password for the key
+          keyPassword: ${{ secrets.KEY_PASS }}# optional
+          # The working directory for action, default to build
+          #buildDirectory: # optional
+          # The output directory for sign, default to build/signed
+          output: out # optional
+          
       - name: Gen md5sums
         run: |
           md5sum out/app-release.apk > out/app-release.md5
@@ -95,7 +115,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: app-release
-          path: out/app-release.*
+          path: out/app-release*
 
       - name: Upload AAB
         uses: actions/upload-artifact@v4
@@ -114,9 +134,9 @@ jobs:
           track: internal
           inAppUpdatePriority: 5
 
-      - name: Upload APK (without runtime)
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-release-noruntime
-          path: out/app-release-noruntime.*
+      #- name: Upload APK (without runtime)
+      #  uses: actions/upload-artifact@v4
+      #  with:
+      #    name: app-release-noruntime
+      #    path: out/app-release-noruntime.*
 

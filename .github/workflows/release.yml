@@ -86,27 +86,6 @@ jobs:
           rm -r app_pojavlauncher/src/main/assets/components/jre-21
           gradle assembleRelease
           mv app_pojavlauncher/build/outputs/apk/release/*.apk out/app-release-noruntime.apk
-      - name: Android Sign
-        # You may pin to the exact commit or the version.
-        # uses: Tlaster/android-sign@1c5bf4b2fa309acb0c0ae0bf9379ab458f14d5b1
-        uses: Tlaster/android-sign@v1.2.2
-        with:
-          # The directory to find your release to sign
-          releaseDirectory: out
-          # The key used to sign your release in base64 encoded format
-          signingKeyBase64: ${{ secrets.SIGN_BASE64_KEY }}
-          # The key alias
-          alias: ${{ secrets.ALIAS }}
-          # The password to the keystore
-          #keyStorePassword: # optional
-          # The password for the key
-          keyPassword: ${{ secrets.KEY_PASS }}# optional
-          # The working directory for action, default to build
-          #buildDirectory: # optional
-          # The output directory for sign, default to build/signed
-          output: out # optional
-        env:
-          BUILD_TOOLS_VERSION: "27.1.12297006"
           
       - name: Gen md5sums
         run: |

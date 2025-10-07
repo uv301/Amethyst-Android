@@ -105,6 +105,8 @@ jobs:
           #buildDirectory: # optional
           # The output directory for sign, default to build/signed
           output: out # optional
+        env:
+          BUILD_TOOLS_VERSION: "27.1.12297006"
           
       - name: Gen md5sums
         run: |

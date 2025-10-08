@@ -13,6 +13,22 @@ jobs:
       GPLAY_KEYSTORE_PASSWORD: ${{ secrets.GPLAY_KEYSTORE_PASSWORD }}
       CURSEFORGE_API_KEY: ${{ secrets.CURSEFORGE_API_KEY }}
     steps:
+      - name: Get the version
+        id: tagger
+        uses: jimschubert/query-tag-action@0b288a5fff630fea2e96d61b99047ed823ca19dc #v2.2
+        with:
+          skip-unshallow: 'true'
+          abbrev: false
+          commit-ish: HEAD
+      - name: Decode Keystore
+        env:
+          ENCODED_KEYSTORE: ${{ secrets.SIGN_BASE64_KEY }}
+        run: |
+          TMP_KEYSTORE_DIR_PATH="${RUNNER_TEMP}"/keystore
+          mkdir -p "${TMP_KEYSTORE_DIR_PATH}"
+          TMP_KEYSTORE_FILE_PATH="${TMP_KEYSTORE_DIR_PATH}"/keystore.ks
+          echo $ENCODED_KEYSTORE | base64 -di > "${TMP_KEYSTORE_FILE_PATH}"
+          echo "STORE_PATH=$(echo $TMP_KEYSTORE_FILE_PATH)" >> $GITHUB_ENV
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -74,12 +90,18 @@ jobs:
           mv app_pojavlauncher/build/outputs/bundle/gplay/app_pojavlauncher-gplay.aab out/app-gplay.aab
 
       - name: Build Release .apk
+        env:
+          STORE_PASSWORD: ${{secrets.STORE_PASS}}
+          SINGER_PASS: ${{secrets.SINGER_PASS}}
         run: |
           # Build the launcher
           gradle :app_pojavlauncher:assembleRelease
           mv app_pojavlauncher/build/outputs/apk/release/*.apk out/app-release.apk
 
       - name: Build APK without runtime
+        env:
+          STORE_PASSWORD: ${{secrets.STORE_PASS}}
+          SINGER_PASS: ${{secrets.SINGER_PASS}}
         run: |
           rm -r app_pojavlauncher/src/main/assets/components/jre
           rm -r app_pojavlauncher/src/main/assets/components/jre-new
@@ -91,19 +113,6 @@ jobs:
         run: |
           md5sum out/app-release.apk > out/app-release.md5
           md5sum out/app-release-noruntime.apk > out/app-release-noruntime.md5
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-release
-          path: out/app-release.apk
-
-      - name: Upload AAB
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-release-aab
-          path: out/app-gplay.aab
-
       - name: Upload onto the Google Play testing track
         continue-on-error: true
         if: github.repository_owner == 'PojavLauncherTeam' && github.ref_name == 'v3_openjdk'
@@ -115,9 +124,14 @@ jobs:
           track: internal
           inAppUpdatePriority: 5
 
-      - name: Upload APK (without runtime)
-        uses: actions/upload-artifact@v4
+      - name: Create release
+        if: "!contains(steps.tagger.outputs.tag, '-beta')"
+        uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda #v2.2.1
         with:
-          name: app-release-noruntime
-          path: out/app-release-noruntime.apk
-
+          prerelease: false
+          tag_name: ${{ steps.tagger.outputs.tag }}
+          name: ${{ steps.tagger.outputs.tag }}
+          generate_release_notes: true
+          files: out/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

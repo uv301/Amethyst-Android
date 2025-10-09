@@ -19,7 +19,7 @@ jobs:
         with:
           skip-unshallow: 'true'
           abbrev: false
-          commit-ish: v
+          commit-ish: HEAD
       - name: Decode Keystore
         env:
           ENCODED_KEYSTORE: ${{ secrets.SIGN_BASE64_KEY }}
